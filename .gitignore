@@ -1,0 +1,65 @@
+# =====================================================================
+# .gitignore — pipeline de monitoreo de calidad
+#
+# Criterio: se versiona el CÓDIGO y la ESTRUCTURA de carpetas.
+# Nunca se versionan datos de campo, PII ni credenciales.
+#
+# Truco para que una carpeta se vea en GitHub pero vacía:
+#   carpeta/**          -> ignora todo lo que hay dentro
+#   !carpeta/**/        -> deja que git entre a los subdirectorios
+#   !carpeta/**/.gitkeep -> deja pasar solo el archivo marcador
+# Ojo: NO usar "carpeta/" a secas, porque git no entra a una carpeta
+# ignorada y las excepciones de abajo nunca se evalúan.
+# =====================================================================
+
+# ---- Credenciales / secretos ----
+.Renviron
+.Renviron.local
+Renviron
+*-service-account*.json
+gdrive_sa*.json
+*.json
+!.github/**/*.json
+
+# El JSON de la cuenta de servicio vive acá (ignorado); la carpeta sí se ve.
+.secrets/**
+!.secrets/**/
+!.secrets/**/.gitkeep
+.secrets_gdrive/
+
+# ---- Datos de campo / información personal ----
+# La estructura data/01_crudas, 02_auditadas, 03_limpias se ve en GitHub;
+# el contenido (crudas, auditadas, limpias, reportes) nunca se sube.
+data/**
+!data/**/
+!data/**/.gitkeep
+
+descargas/
+*_datos.csv
+*_export.csv
+export*.csv
+encuestadores.csv
+*.sav
+*.dta
+
+# ---- R ----
+.Rhistory
+.RData
+.Rproj.user/
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+
+# ---- Sistema / editores ----
+.DS_Store
+Thumbs.db
+~$*
+*.tmp
+.vscode/
+.idea/
+.positai

@@ -1,0 +1,79 @@
+# =====================================================================
+# Monitoreo DIARIO — importa, audita y sube a Google Drive (crudas + auditadas)
+# Corre 1 vez al día
+# =====================================================================
+name: Monitoreo diario
+
+on:
+  schedule:
+    # 23:30 UTC = 18:30 Peru: media hora despues del ultimo hourly, para no pegarle dos
+    # veces seguidas a la API de SurveyCTO, y antes de medianoche UTC para que Sys.Date()
+    # nombre los archivos con la fecha del dia de campo.
+    - cron: "30 23 * * *"
+  workflow_dispatch:         
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    env:
+      SURVEYCTO_SERVER:    ${{ secrets.SURVEYCTO_SERVER }}
+      SURVEYCTO_USER:      ${{ secrets.SURVEYCTO_USER }}
+      SURVEYCTO_PASS:      ${{ secrets.SURVEYCTO_PASS }}
+      SURVEYCTO_FORMID:    ${{ secrets.SURVEYCTO_FORMID }}
+      DRIVE_CRUDA_URL:     ${{ secrets.DRIVE_CRUDA_URL }}
+      DRIVE_AUDITORIA_URL: ${{ secrets.DRIVE_AUDITORIA_URL }}
+      GDRIVE_SA:           ${{ github.workspace }}/gdrive_sa.json
+    steps:
+      - name: Descargar el repo
+        uses: actions/checkout@v4
+
+      - name: Instalar R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true      # paquetes binarios (instalación rápida)
+          
+      - name: Install libcurl
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcurl4-openssl-dev
+          sudo apt-get install -y libharfbuzz-dev
+          sudo apt-get install -y libfribidi-dev
+
+      - name: Escribir credencial de la cuenta de servicio
+        env:
+          SA_JSON: ${{ secrets.GDRIVE_SA }}
+        run: printf '%s' "$SA_JSON" > "$GDRIVE_SA"
+
+      - name: Instalar paquetes de R (con caché)
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            any::pacman
+            any::tidyverse
+            any::httr
+            any::jsonlite
+            any::googledrive
+            any::googlesheets4
+            any::writexl
+            any::haven
+            any::stringr
+            any::stringi
+            any::labelled
+            any::lubridate
+            any::gtsummary
+
+      - name: "Correr pipeline: 1. importar"
+        run: |
+          Rscript scripts/01_importar.R
+          
+      - name: "Correr pipeline: 2. auditar"
+        run: |
+          Rscript scripts/02_auditoria.R
+        
+      - name: "Correr pipeline: 3. subir a Drive"
+        run: |
+          Rscript scripts/04_monitoreo_daily.R
+          
+      - name: Borrar credencial
+        if: always()
+        run: rm -f "$GDRIVE_SA"
